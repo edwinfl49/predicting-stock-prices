@@ -5,6 +5,8 @@
 #%%
 import pandas as pd
 from datetime import datetime
+from sklearn.metrics import mean_absolute_error
+from sklearn.linear_model import LinearRegression
 
 stocks = pd.read_csv('data/sphist.csv')
 stocks['Date'] = pd.to_datetime(stocks['Date'])
@@ -19,10 +21,54 @@ stocks.head(10)
 # For example, if we're computing the average price of the last 5 days from 1995-09-25, then we need to make sure that 1995-09-25 is not in included in the calculation.
 
 #%%
-stocks['Close'].rolling('5D').mean()
+indicators = pd.DataFrame()
+indicators['avg_last_5_day'] = stocks['Close'].rolling('5D').mean().shift(axis=0, periods=1)
+indicators['avg_last_30_day'] = stocks['Close'].rolling('30D').mean().shift(axis=0, periods=1)
+indicators['avg_last_365_day'] = stocks['Close'].rolling('365D').mean().shift(axis=0, periods=1)
+indicators['avg_ratio_5_365_day'] = indicators['avg_last_5_day'] / indicators['avg_last_365_day']
+indicators['stdev_last_5_day'] = stocks['Close'].rolling('5D').std().shift(axis=0, periods=1)
+indicators['stdev_last_30_day'] = stocks['Close'].rolling('30D').std().shift(axis=0, periods=1)
+indicators['stdev_last_365_day'] = stocks['Close'].rolling('365D').std().shift(axis=0, periods=1)
+
 
 #%%
-stocks['Close'].rolling('5D').mean().shift(axis=0, periods=1)
-
+stocks = pd.merge(stocks, indicators, left_on='Date', right_on='Date')
 
 #%%
+stocks.head()
+
+#%% [markdown]
+# While pandas is still able to calculated a rolling window if there isn't enough days, this isn't good enough for what we need. We have to drop columns that are older than a year old.
+
+#%%
+stocks = stocks[stocks.index > datetime(year=1951, month=1, day=2)]
+stocks = stocks.dropna(axis=0)
+
+#%% [markdown]
+#Because we are making predictions using a time series dataset, we'll want to split our train and test date based on the data
+
+#%%
+train = stocks[stocks.index < datetime(year=2013, month=1, day=1)]
+test = stocks[stocks.index >= datetime(year=2013, month=1, day=1)]
+
+
+#%% [markdown]
+# ###Running the Model
+# Before training our model, we'll want to define something that we can evaluate our model's performance on.
+# _Mean Squared Error_ is a common metric. However, because it squares the error, it is harder for us to tell intuitively how far we are from the true price.
+# In this project, the metric that will be used is _Mean Absolute Error_. This metric may be more suited for time series data, and it is also more intuitive in telling us how far off from the true price we are. 
+
+#%%
+
+X = ['avg_last_5_day', 'avg_last_30_day', 'avg_last_365_day', 'avg_ratio_5_365_day', 'stdev_last_5_day', 'stdev_last_30_day', 'stdev_last_365_day']
+y = ['Close']
+reggie = LinearRegression().fit(train[X], train[y])
+predictions = reggie.predict(test[X])
+mae = mean_absolute_error(test[y], predictions)
+
+#%%
+print(mae)
+
+#%% [markdown]
+# The model gives us an MAE of about $14.32. Can we reduce the error further?
+# Let's see if we can engineer additional features.
