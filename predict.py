@@ -22,13 +22,38 @@ stocks.head(10)
 
 #%%
 indicators = pd.DataFrame()
-indicators['avg_last_5_day'] = stocks['Close'].rolling('5D').mean().shift(axis=0, periods=1)
-indicators['avg_last_30_day'] = stocks['Close'].rolling('30D').mean().shift(axis=0, periods=1)
-indicators['avg_last_365_day'] = stocks['Close'].rolling('365D').mean().shift(axis=0, periods=1)
-indicators['avg_ratio_5_365_day'] = indicators['avg_last_5_day'] / indicators['avg_last_365_day']
-indicators['stdev_last_5_day'] = stocks['Close'].rolling('5D').std().shift(axis=0, periods=1)
-indicators['stdev_last_30_day'] = stocks['Close'].rolling('30D').std().shift(axis=0, periods=1)
-indicators['stdev_last_365_day'] = stocks['Close'].rolling('365D').std().shift(axis=0, periods=1)
+intervals = [5, 30, 365]
+base_features = ['Close', 'Volume']
+
+def generate_features(df, interval, measures):
+    for measure in measures:
+        for interval in intervals:
+            indicators[f'avg_{measure.lower()}_last_{interval}_day'] = df[measure].rolling(f'{interval}D').mean().shift(axis=0, periods=1)
+            indicators[f'stdev_{measure.lower()}_last_{interval}_day'] = df[measure].rolling(f'{interval}D').std().shift(axis=0, periods=1)
+
+generate_features(stocks, intervals, base_features)
+
+indicators['avg_ratio_close_5_365_day'] = indicators['avg_close_last_5_day'] / indicators['avg_close_last_365_day']
+indicators['avg_ratio_volume_5_365_day'] = indicators['avg_volume_last_5_day'] / indicators['avg_volume_last_365_day']
+print(indicators.columns)
+
+#%% [markdown]
+# Next, we'll take a look at the ratio between the low and high prices in the past year compared to the current price
+
+#%%
+year_min_max = pd.DataFrame()
+year_min_max['min'] = stocks.groupby(pd.Grouper(freq='Y'))['Close'].min()
+year_min_max['max'] = stocks.groupby(pd.Grouper(freq='Y'))['Close'].max()
+year_min_max['year'] = year_min_max.index.year
+year_min_max.index = year_min_max['year']
+year_min_max = year_min_max.drop('year', axis=1)
+indicators[indicators.index.year > 1949]['prev_year_close_min'] = year_min_max['min']
+
+#%%
+indicators.columns
+
+#%%
+indicators.head()
 
 
 #%%
