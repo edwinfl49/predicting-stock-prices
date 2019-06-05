@@ -47,14 +47,25 @@ year_min_max['max'] = stocks.groupby(pd.Grouper(freq='Y'))['Close'].max()
 year_min_max['year'] = year_min_max.index.year
 year_min_max.index = year_min_max['year']
 year_min_max = year_min_max.drop('year', axis=1)
-indicators[indicators.index.year > 1949]['prev_year_close_min'] = year_min_max['min']
+indicators['year'] = indicators.index.year
+
+num_rows_first_year = indicators[indicators['year'] == 1950].shape[0]
+indicators['prev_year_close_min'] = indicators['year'].apply(lambda y: year_min_max.loc[y, 'min']).shift(axis=0, periods=num_rows_first_year)
+indicators['prev_year_close_max'] = indicators['year'].apply(lambda y: year_min_max.loc[y, 'max']).shift(axis=0, periods=num_rows_first_year)
+
+indicators['close'] = stocks['Close']
+indicators['ratio_prev_year_low_to_current_close'] = indicators['prev_year_close_min'] / indicators['close']
+indicators['ratio_prev_year_high_to_current_close'] = indicators['prev_year_close_max'] / indicators['close'] 
+indicators = indicators.drop(['close'], axis=1)
+
+#%% [markdown]
+# Going off on conventional knowledge, the value of the stock market in general has only increased, meaning we can expect that the year would have a large effect on the price. 
+# Instead of using the year as it is presented, we'll subtract all year values by 1950 so that 1950 will be year 0 and 2000 will be 50.
+#%% 
+indicators['year'] = indicators['year'] - 1950
 
 #%%
-indicators.columns
-
-#%%
-indicators.head()
-
+indicators.describe()
 
 #%%
 stocks = pd.merge(stocks, indicators, left_on='Date', right_on='Date')
@@ -64,10 +75,39 @@ stocks.head()
 
 #%% [markdown]
 # While pandas is still able to calculated a rolling window if there isn't enough days, this isn't good enough for what we need. We have to drop columns that are older than a year old.
+# We'll also drop columns with NA values, as well as any columns we used primarily to create other columns.
 
 #%%
 stocks = stocks[stocks.index > datetime(year=1951, month=1, day=2)]
+stocks = stocks.drop(['prev_year_close_min', 'prev_year_close_max'], axis=1)
 stocks = stocks.dropna(axis=0)
+
+#%% [markdown]
+# With our features in line, let's display some of the data graphically to get an idea of how they interact with the closing price
+
+#%%
+from matplotlib import pyplot as plt
+import seaborn as sns
+
+stocks.plot.line(y='Close', use_index=True)
+
+#%%
+sns.heatmap(stocks.drop(['Open', 'High', 'Low', 'Adj Close'], axis=1).corr().abs())
+
+#%% [markdown]
+# ### Running the Model
+# Before training our model, we'll want to define something that we can evaluate our model's performance on.
+# _Mean Squared Error_ is a common metric. However, because it squares the error, it is harder for us to tell intuitively how far we are from the true price.
+# In this project, the metric that will be used is _Mean Absolute Error_. This metric may be more suited for time series data, and it is also more intuitive in telling us how far off from the true price we are. 
+
+#%% [markdown]
+# As we examined, the avg ratios 5-365 days and ratio between high/low and current price appear to have very little correlation, so we'll drop those...
+
+#%%
+# last index of columns in original data is 5
+X = stocks.columns[6:].to_list()
+X = [c for c in X if c not in ('avg_ratio_close_5_365_day', 'avg_ratio_volume_5_365_day', 'ratio_prev_year_low_to_current_close', 'ratio_prev_year_high_to_current_close')]
+print(X)
 
 #%% [markdown]
 #Because we are making predictions using a time series dataset, we'll want to split our train and test date based on the data
@@ -76,16 +116,7 @@ stocks = stocks.dropna(axis=0)
 train = stocks[stocks.index < datetime(year=2013, month=1, day=1)]
 test = stocks[stocks.index >= datetime(year=2013, month=1, day=1)]
 
-
-#%% [markdown]
-# ###Running the Model
-# Before training our model, we'll want to define something that we can evaluate our model's performance on.
-# _Mean Squared Error_ is a common metric. However, because it squares the error, it is harder for us to tell intuitively how far we are from the true price.
-# In this project, the metric that will be used is _Mean Absolute Error_. This metric may be more suited for time series data, and it is also more intuitive in telling us how far off from the true price we are. 
-
 #%%
-
-X = ['avg_last_5_day', 'avg_last_30_day', 'avg_last_365_day', 'avg_ratio_5_365_day', 'stdev_last_5_day', 'stdev_last_30_day', 'stdev_last_365_day']
 y = ['Close']
 reggie = LinearRegression().fit(train[X], train[y])
 predictions = reggie.predict(test[X])
@@ -95,5 +126,4 @@ mae = mean_absolute_error(test[y], predictions)
 print(mae)
 
 #%% [markdown]
-# The model gives us an MAE of about $14.32. Can we reduce the error further?
-# Let's see if we can engineer additional features.
+# The model gives us an MAE of about $14.36. Can we reduce the error further?
