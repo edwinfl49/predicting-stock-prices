@@ -126,4 +126,12 @@ mae = mean_absolute_error(test[y], predictions)
 print(mae)
 
 #%% [markdown]
-# The model gives us an MAE of about $14.36. Can we reduce the error further?
+# ### Conclusion
+# The model gives us an MAE of about $14.36. Which isn't too bad for the numbers in the S&P 500 today. There is always room for improvement however. Ideas include:
+# - Add more features, including
+#   - Date components (day, week, month, holidays in the previous month)
+#   - Other features not mentoined
+#   - Incorporate outside data into this analysis
+# - Make predictions only one day head
+#   - To do this we would train the model using 1951-01-03 to 2013-01-02 to make predictions for 1951-01-03
+#   - Then we add the past day's data (2013-01-03) and use it to predict data for January 4th, and so on
