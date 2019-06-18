@@ -5,7 +5,7 @@
 #%%
 import pandas as pd
 from datetime import datetime
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.linear_model import LinearRegression
 
 stocks = pd.read_csv('data/sphist.csv')
@@ -121,9 +121,14 @@ y = ['Close']
 reggie = LinearRegression().fit(train[X], train[y])
 predictions = reggie.predict(test[X])
 mae = mean_absolute_error(test[y], predictions)
+r2 = r2_score(test[y], predictions)
 
 #%%
-print(mae)
+print("Mean Absolute Error:", mae)
+print("Variance Score:", r2)
+
+#%%
+plt.scatter(test[y], predictions)
 
 #%% [markdown]
 # ### Conclusion
