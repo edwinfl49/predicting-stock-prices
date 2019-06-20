@@ -132,7 +132,9 @@ plt.scatter(test[y], predictions)
 
 #%% [markdown]
 # ### Conclusion
-# The model gives us an MAE of about $14.36. Which isn't too bad for the numbers in the S&P 500 today. There is always room for improvement however. Ideas include:
+# The model gives us an MAE of about $14.36 and an R2 score that is very close to zero. While the numbers look great, the fact that our error is this immediately raises some flags about overfitting. Further evaluation of the model and data is required.
+# 
+# As for improving the model itself, some ideas include:
 # - Add more features, including
 #   - Date components (day, week, month, holidays in the previous month)
 #   - Other features not mentoined
