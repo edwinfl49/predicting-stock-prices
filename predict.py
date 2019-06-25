@@ -128,11 +128,21 @@ print("Mean Absolute Error:", mae)
 print("Variance Score:", r2)
 
 #%%
+# ### Plotting Actual vs Predictions
 plt.scatter(test[y], predictions)
+#%%
+# ### Plotting Predictions
+test_with_predictions = test.copy()
+test_with_predictions['predicted'] = predictions
+
+plt.plot(train.index, train['Close'], label="Historical Close")
+plt.plot(test.index, test['Close'], label="True Close (2013+)")
+plt.scatter(test_with_predictions.index, test_with_predictions['predicted'], label="Predicted Close (2013+)")
+plt.legend()
 
 #%% [markdown]
 # ### Conclusion
-# The model gives us an MAE of about $14.36 and an R2 score that is very close to zero. While the numbers look great, the fact that our error is this immediately raises some flags about overfitting. Further evaluation of the model and data is required.
+# The model gives us an MAE of about $14.36 and an R2 score that is very close to zero. While the numbers look great, the fact that our error is this immediately raises some flags. Further evaluation of the model and data is required.
 # 
 # As for improving the model itself, some ideas include:
 # - Add more features, including
