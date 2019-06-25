@@ -142,7 +142,10 @@ plt.legend()
 
 #%% [markdown]
 # ### Conclusion
-# The model gives us an MAE of about $14.36 and an R2 score that is very close to zero. While the numbers look great, the fact that our error is this immediately raises some flags. Further evaluation of the model and data is required.
+# The model gives us an MAE of about $14.36 and an R2 score that is very close to zero. While the numbers look great, the fact that our error is this immediately raises some flags. 
+# - Did we overfit the model?
+# - Is this sample a random walk?
+# Further evaluation of the model and data is required.
 # 
 # As for improving the model itself, some ideas include:
 # - Add more features, including
